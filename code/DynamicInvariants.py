@@ -134,7 +134,7 @@ if __name__ == '__main__':
     import random
     random.seed(2001)
 
-from .Tracer import Tracer
+from ..Tracer_ import Tracer
 
 from typing import Sequence, Any, Callable, Tuple
 from typing import Dict, Union, Set, List, cast, Optional

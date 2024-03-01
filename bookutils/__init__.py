@@ -1,5 +1,27 @@
 # Bookutils
 
+import sys, importlib
+from pathlib import Path
+
+
+def import_parents(level=1):
+    global __package__
+    file = Path(__file__).resolve()
+    parent, top = file.parent, file.parents[level]
+    sys.path.append(str(top))
+    try:
+        sys.path.remove(str(parent))
+    except ValueError:  # already removed
+        pass
+    __package__ = ".".join(parent.parts[len(top.parts) :])
+    importlib.import_module(__package__)  # won't be needed after that
+
+
+if __name__ == "__main__" and __package__ in [None, ""]:
+    import_parents(level=1)
+
+from .import_notebooks import NotebookFinder  # type: ignore
+
 from typing import Any, Dict, List, Set, Optional, Union, Tuple, Type
 
 import sys
@@ -7,23 +29,33 @@ import os
 
 # Define the contents of this file as a package
 __all__ = [
-    "PrettyTable", "YouTubeVideo",
-    "print_file", "print_content", "HTML",
-    "show_ast", "input", "next_inputs",
-    "unicode_escape", "terminal_escape", "project"
-    "inheritance_conflicts", "extract_class_definition",
-    "quiz", "import_notebooks"
+    "PrettyTable",
+    "YouTubeVideo",
+    "print_file",
+    "print_content",
+    "HTML",
+    "show_ast",
+    "input",
+    "next_inputs",
+    "unicode_escape",
+    "terminal_escape",
+    "project" "inheritance_conflicts",
+    "extract_class_definition",
+    "quiz",
+    "import_notebooks",
 ]
 
 # Setup loader such that workbooks can be imported directly
 try:
     import IPython
+
     have_ipython = True
 except:
     have_ipython = False
 
 if have_ipython:
     from .import_notebooks import NotebookFinder  # type: ignore
+
 
 # Check for rich output
 def rich_output() -> bool:
@@ -34,36 +66,42 @@ def rich_output() -> bool:
         rich = False
 
     return rich
-    
+
+
 # Project identifier
 def project() -> Optional[str]:
     wd = os.getcwd()
-    for name in [ 'fuzzingbook', 'debuggingbook' ]:
+    for name in ["fuzzingbook", "debuggingbook"]:
         if name in wd:
             return name
 
     return None
 
+
 # Wrapper for YouTubeVideo
 def YouTubeVideo(id: str, width: int = 640, height: int = 360) -> Any:
     """
-    Replacement for IPython.YoutubeVideo, 
+    Replacement for IPython.YoutubeVideo,
     with different width/height and no cookies for YouTube
     """
-    if 'RENDER_HTML' in os.environ:
+    if "RENDER_HTML" in os.environ:
         # For README.md (GitHub) and PDFs:
         # Just include a (static) picture, with a link to the actual video
         import IPython.core.display
+
         proj = project()
-        return IPython.core.display.Markdown(f'''
+        return IPython.core.display.Markdown(
+            f"""
 <a href="https://www.youtube-nocookie.com/embed/{id}" target="_blank">
 <img src="https://www.{proj}.org/html/PICS/youtube.png" width={width}>
 </a>
-        ''')
+        """
+        )
 
     elif have_ipython:
         # For Jupyter: integrate a YouTube iframe
         from IPython.display import IFrame
+
         src = f"https://www.youtube-nocookie.com/embed/{id}"
         return IFrame(src, width, height)
 
@@ -79,23 +117,28 @@ def YouTubeVideo(id: str, width: int = 640, height: int = 360) -> Any:
 
 from inspect import getattr_static
 
+
 def inheritance_conflicts(c1: Type[object], c2: Type[object]) -> List[str]:
     """Return attributes defined differently in classes c1 and c2"""
+
     class c1c2(c1, c2):  # type: ignore
         pass
 
     class c2c1(c2, c1):  # type: ignore
         pass
 
-    return [attr for attr in dir(c1c2) if getattr_static(
-        c1c2, attr) != getattr_static(c2c1, attr)]
+    return [attr for attr in dir(c1c2) if getattr_static(c1c2, attr) != getattr_static(c2c1, attr)]
+
 
 # Printing files with syntax highlighting
 def print_file(filename: str, **kwargs: Any) -> None:
-    content = open(filename, "rb").read().decode('utf-8')
+    content = open(filename, "rb").read().decode("utf-8")
     print_content(content, filename, **kwargs)
 
-def print_content(content: str, filename: Optional[str] = None, lexer: Optional[Any] = None, start_line_number: Optional[int] = None) -> None:
+
+def print_content(
+    content: str, filename: Optional[str] = None, lexer: Optional[Any] = None, start_line_number: Optional[int] = None
+) -> None:
     from pygments import highlight, lexers, formatters
     from pygments.lexers import get_lexer_for_filename, guess_lexer
 
@@ -106,9 +149,7 @@ def print_content(content: str, filename: Optional[str] = None, lexer: Optional[
             else:
                 lexer = get_lexer_for_filename(filename)
 
-        colorful_content = highlight(
-            content, lexer,
-            formatters.TerminalFormatter())
+        colorful_content = highlight(content, lexer, formatters.TerminalFormatter())
         content = colorful_content.rstrip()
 
     if start_line_number is None:
@@ -118,51 +159,55 @@ def print_content(content: str, filename: Optional[str] = None, lexer: Optional[
         no_of_lines = len(content_list)
         size_of_lines_nums = len(str(start_line_number + no_of_lines))
         for i, line in enumerate(content_list):
-            content_list[i] = ('{0:' + str(size_of_lines_nums) + '} ').format(i + start_line_number) + " " + line
-        content_with_line_no = '\n'.join(content_list)
+            content_list[i] = ("{0:" + str(size_of_lines_nums) + "} ").format(i + start_line_number) + " " + line
+        content_with_line_no = "\n".join(content_list)
         print(content_with_line_no, end="")
+
 
 def getsourcelines(function: Any) -> Tuple[List[str], int]:
     """A replacement for inspect.getsourcelines(), but with syntax highlighting"""
     import inspect
-    
-    source_lines, starting_line_number = \
-       inspect.getsourcelines(function)
-       
+
+    source_lines, starting_line_number = inspect.getsourcelines(function)
+
     if not rich_output():
         return source_lines, starting_line_number
-        
+
     from pygments import highlight, lexers, formatters
     from pygments.lexers import get_lexer_for_filename
-    
-    lexer = get_lexer_for_filename('.py')
-    colorful_content = highlight(
-        "".join(source_lines), lexer,
-        formatters.TerminalFormatter())
+
+    lexer = get_lexer_for_filename(".py")
+    colorful_content = highlight("".join(source_lines), lexer, formatters.TerminalFormatter())
     content = colorful_content.strip()
-    return [line + '\n' for line in content.split('\n')], starting_line_number
+    return [line + "\n" for line in content.split("\n")], starting_line_number
+
 
 from ast import AST
+
 
 # Showing ASTs
 def show_ast(tree: AST) -> Optional[Any]:
     if rich_output():
         import showast  # We can import showast only when in a notebook
+
         return showast.show_ast(tree)
     else:
         import ast  # Textual alternative111
+
         print(ast.dump(tree))
         return None
 
+
 # Escaping unicode characters into ASCII for user-facing strings
-def unicode_escape(s: str, error: str = 'backslashreplace') -> str:
+def unicode_escape(s: str, error: str = "backslashreplace") -> str:
     def ascii_chr(byte: int) -> str:
         if 0 <= byte <= 127:
             return chr(byte)
         return r"\x%02x" % byte
 
-    bytes = s.encode('utf-8', error)
+    bytes = s.encode("utf-8", error)
     return "".join(map(ascii_chr, bytes))
+
 
 # Same, but escaping unicode only if output is not a terminal
 def terminal_escape(s: str) -> str:
@@ -176,18 +221,23 @@ def terminal_escape(s: str) -> str:
 # This is useful for producing derived formats without HTML support (LaTeX/PDF, Word, ...)
 
 import os
+
 firefox = None
 
-def HTML(data: Optional[str] = None, 
-         url: Optional[str] = None, 
-         filename: Optional[str] = None, 
-         png: bool = False,
-         headless: bool = True,
-         zoom: float = 2.0) -> Any:
 
-    if not png and not 'RENDER_HTML' in os.environ:
+def HTML(
+    data: Optional[str] = None,
+    url: Optional[str] = None,
+    filename: Optional[str] = None,
+    png: bool = False,
+    headless: bool = True,
+    zoom: float = 2.0,
+) -> Any:
+
+    if not png and not "RENDER_HTML" in os.environ:
         # Standard behavior
         import IPython.core.display
+
         return IPython.core.display.HTML(data=data, url=url, filename=filename)
 
     # Import only as needed; avoids unnecessary dependencies
@@ -207,95 +257,99 @@ def HTML(data: Optional[str] = None,
 
     # Create a URL argument
     if data is not None:
-        has_html = data.find('<html')
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.html') as fp:
+        has_html = data.find("<html")
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".html") as fp:
             if has_html:
-                fp.write(data.encode('utf8'))
+                fp.write(data.encode("utf8"))
             else:
-                fp.write(('<html>' + data + '</html>').encode('utf8'))
+                fp.write(("<html>" + data + "</html>").encode("utf8"))
             fp.flush()
             return HTML(filename=fp.name, png=True)
 
     if filename is not None:
-        return HTML(url='file://' + filename, png=True)
+        return HTML(url="file://" + filename, png=True)
 
     assert url is not None
 
     # Render URL as PNG
     firefox.get(url)
     return Image(firefox.get_screenshot_as_png())
-    
-    
+
+
 # Quizzes
-# Usage: quiz('Which of these is not a fruit?', 
+# Usage: quiz('Which of these is not a fruit?',
 #             ['apple', 'banana', 'pear', 'tomato'], '27 / 9')
 import uuid
 import markdown
 import html
 
+
 def quiztext(text: Union[str, object]) -> str:
     if not isinstance(text, str):
         text = str(text)
     md_text = markdown.markdown(text)
-    if md_text.startswith('<p>'):
-        md_text = md_text[len('<p>'):]
-    if md_text.endswith('</p>'):
-        md_text = md_text[:-len('</p>')]
+    if md_text.startswith("<p>"):
+        md_text = md_text[len("<p>") :]
+    if md_text.endswith("</p>"):
+        md_text = md_text[: -len("</p>")]
     return md_text
+
 
 # Widget quizzes. No support for multiple-choice quizzes.
 # Currently unused in favor of jsquiz(), below.
-def nbquiz(question: str, options: List[str], correct_answer: int, 
-    globals: Optional[Dict[str, Any]], 
-    title: str = 'Quiz', debug: bool = False) -> object:
+def nbquiz(
+    question: str,
+    options: List[str],
+    correct_answer: int,
+    globals: Optional[Dict[str, Any]],
+    title: str = "Quiz",
+    debug: bool = False,
+) -> object:
     import ipywidgets as widgets
 
     if isinstance(correct_answer, str):
         correct_answer = int(eval(correct_answer, globals))
-  
-    radio_options = [(quiztext(words), i) for i, words in enumerate(options)]
-    alternatives = widgets.RadioButtons(
-        options = radio_options,
-        description = '',
-        disabled = False
-    )
 
-    title_out =  widgets.HTML(value=f'<h4>{quiztext(title)}</h4><strong>{quiztext(question)}</strong>')
+    radio_options = [(quiztext(words), i) for i, words in enumerate(options)]
+    alternatives = widgets.RadioButtons(options=radio_options, description="", disabled=False)
+
+    title_out = widgets.HTML(value=f"<h4>{quiztext(title)}</h4><strong>{quiztext(question)}</strong>")
 
     check = widgets.Button()
-    
+
     def clear_selection(change: Any) -> None:
-        check.description = 'Submit'
-        
+        check.description = "Submit"
+
     clear_selection(None)
 
     def check_selection(change: Any) -> None:
         answer = int(alternatives.value) + 1
 
         if answer == correct_answer:
-            check.description = 'Correct!'
+            check.description = "Correct!"
         else:
-            check.description = 'Incorrect!'
+            check.description = "Incorrect!"
         return
-    
+
     check.on_click(check_selection)
-    alternatives.observe(clear_selection, names='value')
-    
+    alternatives.observe(clear_selection, names="value")
+
     return widgets.VBox([title_out, alternatives, check])
-    
+
+
 def escape_quotes(s: str) -> str:
     return html.escape(s.replace("'", r"\'"))
 
+
 # JavaScript quizzes.
-def jsquiz(question: str, 
-           options: List[str], 
-           correct_answer: Union[str,
-                                 int, 
-                                 List[Union[str, int]],
-                                 Set[Union[str, int]]], 
-           globals: Dict[str, Any],
-           title: str = "Quiz", 
-           debug: bool = True) -> Any:  # should be IPython.core.display
+def jsquiz(
+    question: str,
+    options: List[str],
+    correct_answer: Union[str, int, List[Union[str, int]], Set[Union[str, int]]],
+    globals: Dict[str, Any],
+    title: str = "Quiz",
+    debug: bool = True,
+) -> Any:  # should be IPython.core.display
 
     hint = ""
     if isinstance(correct_answer, str):
@@ -325,7 +379,7 @@ def jsquiz(question: str,
 
     quiz_id = uuid.uuid1()
 
-    script = '''
+    script = """
     <script>
     var bad_answers = new Map();
 
@@ -396,21 +450,24 @@ def jsquiz(question: str,
         document.getElementById(quiz_id + "-hint").innerHTML = "";
     }
     </script>
-    '''
-    
+    """
+
     if multiple_choice:
         input_type = "checkbox"
         instructions = "Check all that apply."
     else:
         input_type = "radio"
         instructions = "Pick a choice."
-        
-    menu = "".join(f'''
+
+    menu = "".join(
+        f"""
         <input type="{input_type}" name="{quiz_id}" id="{quiz_id}-{i + 1}" onclick="clear_selection('{quiz_id}')">
         <label id="{quiz_id}-{i + 1}-label" for="{quiz_id}-{i + 1}">{quiztext(option)}</label><br>
-    ''' for (i, option) in enumerate(options))
-    
-    html_fragment = f'''
+    """
+        for (i, option) in enumerate(options)
+    )
+
+    html_fragment = f"""
     {script}
     <div class="quiz">
     <h3 class="quiz_title">{quiztext(title)}</h3>
@@ -425,50 +482,68 @@ def jsquiz(question: str,
     <input id="{quiz_id}-submit" type="submit" value="Submit" onclick="check_selection('{quiz_id}', {correct_ans}, {int(multiple_choice)}, '{escape_quotes(hint)}')">
     <span class="quiz_hint" id="{quiz_id}-hint"></span>
     </div>
-    '''
+    """
     return HTML(html_fragment)
 
+
 # HTML quizzes. Not interactive.
-def htmlquiz(question: str, 
-             options: List[str], 
-             correct_answer: Any, 
-             globals: Optional[Dict[str, Any]] = None,
-             title: str = 'Quiz') -> Any:  # should be IPython.core.display.HTML
-    
-    menu = "".join(f'''
+def htmlquiz(
+    question: str,
+    options: List[str],
+    correct_answer: Any,
+    globals: Optional[Dict[str, Any]] = None,
+    title: str = "Quiz",
+) -> Any:  # should be IPython.core.display.HTML
+
+    menu = "".join(
+        f"""
     <li> {quiztext(option)} </li>
-    ''' for (i, option) in enumerate(options))
-    
-    html = f'''
+    """
+        for (i, option) in enumerate(options)
+    )
+
+    html = f"""
     <h2>{quiztext(title)}</h2>
     <strong>{quiztext(question)}</strong><br/>
     <ol>
     {quiztext(menu)}
     </ol>
     <small>(Hint: {quiztext(correct_answer)})</small>
-    '''
+    """
     return HTML(html)
 
+
 # Text quizzes. Not interactive.
-def textquiz(question: str, options: List[str], correct_answer: Any, globals: Optional[Dict[str, Any]] = None, title: str = 'Quiz') -> None:
-    menu = "".join(f'''
-    {i}. {option}''' for (i, option) in enumerate(options))
-    
-    text = f'''{title}: {question}
+def textquiz(
+    question: str,
+    options: List[str],
+    correct_answer: Any,
+    globals: Optional[Dict[str, Any]] = None,
+    title: str = "Quiz",
+) -> None:
+    menu = "".join(
+        f"""
+    {i}. {option}"""
+        for (i, option) in enumerate(options)
+    )
+
+    text = f"""{title}: {question}
     {menu}
 
 (Hint: {correct_answer})
-    '''
+    """
     print(text)
 
+
 # Entry point for all of the above.
-def quiz(question: str, options: List[str], 
-         correct_answer: Union[str,
-                               int, 
-                               List[Union[str, int]],
-                               Set[Union[str, int]]], 
-         globals: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Any:
-    """Display a quiz. 
+def quiz(
+    question: str,
+    options: List[str],
+    correct_answer: Union[str, int, List[Union[str, int]], Set[Union[str, int]]],
+    globals: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
+) -> Any:
+    """Display a quiz.
     `question` is a question string to be asked.
     `options` is a list of strings with possible answers.
     `correct_answer` is either
@@ -478,18 +553,17 @@ def quiz(question: str, options: List[str],
       these will be displayed as is and evaluated for the correct values.
     `title` is the title to be displayed.
     """
-    
+
     if globals is None:
         globals = {}
 
-    if 'RENDER_HTML' in os.environ:
+    if "RENDER_HTML" in os.environ:
         return htmlquiz(question, options, correct_answer, globals, **kwargs)
 
     if have_ipython:
         return jsquiz(question, options, correct_answer, globals, **kwargs)
-        
-    return textquiz(question, options, correct_answer, globals, **kwargs)
 
+    return textquiz(question, options, correct_answer, globals, **kwargs)
 
 
 # Interactive inputs. We simulate them by assigning to the global variable INPUTS.
@@ -497,6 +571,7 @@ def quiz(question: str, options: List[str],
 INPUTS: List[str] = []
 
 original_input = input
+
 
 def input(prompt: str) -> str:
     given_input = None
@@ -506,25 +581,34 @@ def input(prompt: str) -> str:
         INPUTS = INPUTS[1:]
     except:
         pass
-    
+
     if given_input:
         if rich_output():
             from IPython.display import display
+
             display(HTML(f"<samp>{prompt}<b>{given_input}</b></samp>"))
         else:
             print(f"{prompt} {given_input}")
         return given_input
-    
+
     return original_input(prompt)
-    
+
+
 def next_inputs(list: List[str] = []) -> List[str]:
     global INPUTS
     INPUTS += list
     return INPUTS
 
+
 # Make sure we quit Firefox when done
 import atexit
+
+
 @atexit.register
 def quit_webdriver() -> None:
     if firefox is not None:
         firefox.quit()
+
+
+if __name__ == "__main__":
+    rich_output()

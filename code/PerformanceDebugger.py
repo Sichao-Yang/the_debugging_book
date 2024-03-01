@@ -214,7 +214,7 @@ if __name__ == '__main__':
     print_content(inspect.getsource(remove_html_markup), '.py',
                   start_line_number=238)
 
-from .Tracer import Tracer
+from ..Tracer_ import Tracer
 
 Location = Tuple[str, int]
 

@@ -857,7 +857,7 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     original_source = ast.unparse(ast.parse(middle_source))  # normalize
 
-from .ChangeDebugger import diff, print_patch  # minor dependency
+from ..ChangeDebugger import diff, print_patch  # minor dependency
 
 if __name__ == '__main__':
     for patch in diff(original_source, repaired_source):

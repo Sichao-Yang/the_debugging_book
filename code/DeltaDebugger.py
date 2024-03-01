@@ -146,7 +146,7 @@ if __name__ == '__main__':
     import random
     random.seed(2001)
 
-from . import Tracer
+from .. import Tracer
 
 from .bookutils import quiz
 
