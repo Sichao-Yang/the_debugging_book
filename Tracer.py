@@ -1,5 +1,4 @@
 from types import FrameType, TracebackType
-
 from typing import Any, Optional, Callable, Dict, List, Type, TextIO, cast
 import inspect
 import sys
@@ -178,3 +177,9 @@ class EventTracer(ConditionalTracer):
     def do_report(self, frame: FrameType, event: str, arg: Any) -> bool:
         """Return True if a line should be shown"""
         return self.eval_in_context(self.condition, frame) or self.events_changed(self.events, frame)
+
+
+if __name__=='__main__':
+    from .test_func import remove_html_markup
+    with Tracer():
+        remove_html_markup("abc")

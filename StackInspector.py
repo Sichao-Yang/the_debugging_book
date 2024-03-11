@@ -4,9 +4,7 @@
 
 import inspect
 import warnings
-
 from types import FunctionType, FrameType, TracebackType
-
 from typing import cast, Dict, Any, Tuple, Callable, Optional, Type
 import traceback
 
@@ -18,13 +16,10 @@ class StackInspector:
 
     def caller_frame(self) -> FrameType:
         """Return the frame of the caller."""
-
         # Walk up the call tree until we leave the current class
         frame = cast(FrameType, inspect.currentframe())
-
         while self.our_frame(frame):
             frame = cast(FrameType, frame.f_back)
-
         return frame
 
     def our_frame(self, frame: FrameType) -> bool:
@@ -52,7 +47,6 @@ class StackInspector:
         """
         if frame is None:
             frame = self.caller_frame()
-
         while frame:
             item = None
             if name in frame.f_globals:
@@ -61,7 +55,6 @@ class StackInspector:
                 item = frame.f_locals[name]
             if item and callable(item):
                 return frame, item
-
             frame = cast(FrameType, frame.f_back)
 
         return None, None
@@ -80,7 +73,6 @@ class StackInspector:
         cache_key = (name, frame.f_lineno)
         if cache_key in self._generated_function_cache:
             return self._generated_function_cache[cache_key]
-
         try:
             # Create new function from given code
             generated_function = cast(Callable, FunctionType(frame.f_code, globals=frame.f_globals, name=name))
@@ -88,12 +80,10 @@ class StackInspector:
             # Unsuitable code for creating a function
             # Last resort: Return some function
             generated_function = self.unknown
-
         except Exception as exc:
             # Any other exception
             warnings.warn(f"Couldn't create function for {name} " f" ({type(exc).__name__}: {exc})")
             generated_function = self.unknown
-
         self._generated_function_cache[cache_key] = generated_function
         return generated_function
 
@@ -104,10 +94,8 @@ class StackInspector:
         func = self.search_func(name)
         if func:
             return func
-
         if not name.startswith("<"):
             warnings.warn(f"Couldn't find {name} in caller")
-
         return self.create_function(frame)
 
     def unknown(self) -> None:  # Placeholder for unknown functions
@@ -117,11 +105,9 @@ class StackInspector:
         """Return True if exception was raised from `StackInspector` or a subclass."""
         if not exc_tp:
             return False
-
         for frame, lineno in traceback.walk_tb(exc_traceback):
             if self.our_frame(frame):
                 return True
-
         return False
 
 
