@@ -180,6 +180,6 @@ class EventTracer(ConditionalTracer):
 
 
 if __name__=='__main__':
-    from .test_func import remove_html_markup
+    from .demo_func import remove_html_markup
     with Tracer():
         remove_html_markup("abc")

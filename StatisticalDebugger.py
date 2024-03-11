@@ -56,7 +56,11 @@ class Collector(Tracer):
         Saves the first function and calls collect().
         """
         for item in self.items_to_ignore:
-            if isinstance(item, type) and "self" in frame.f_locals and isinstance(frame.f_locals["self"], item):
+            if (
+                isinstance(item, type)
+                and "self" in frame.f_locals
+                and isinstance(frame.f_locals["self"], item)
+            ):
                 # Ignore this class
                 return
             if item.__name__ == frame.f_code.co_name:
@@ -67,7 +71,9 @@ class Collector(Tracer):
             # Save function
             self._function = self.create_function(frame)
             self._args = frame.f_locals.copy()
-            self._argstring = ", ".join([f"{var}={repr(self._args[var])}" for var in self._args])
+            self._argstring = ", ".join(
+                [f"{var}={repr(self._args[var])}" for var in self._args]
+            )
 
         self.collect(frame, event, arg)
 
@@ -133,7 +139,9 @@ class Collector(Tracer):
         """
         self.items_to_ignore += items_to_ignore
 
-    def __exit__(self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType) -> Optional[bool]:
+    def __exit__(
+        self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType
+    ) -> Optional[bool]:
         """Exit the `with` block."""
         ret = super().__exit__(exc_tp, exc_value, exc_traceback)
         if not self._function:
@@ -325,7 +333,9 @@ class StatisticalDebugger:
                 color_name = self.color(event)
                 if color_name:
                     event_name = (
-                        f'<samp style="background-color: {color_name}"{title}>' f"{html.escape(event_name)}" f"</samp>"
+                        f'<samp style="background-color: {color_name}"{title}>'
+                        f"{html.escape(event_name)}"
+                        f"</samp>"
                     )
 
             out += f"| {event_name}" + sep
@@ -398,7 +408,9 @@ class DifferenceDebugger(StatisticalDebugger):
         self.collector.__enter__()
         return self
 
-    def __exit__(self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType) -> Optional[bool]:
+    def __exit__(
+        self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType
+    ) -> Optional[bool]:
         """Exit the `with` block."""
         status = self.collector.__exit__(exc_tp, exc_value, exc_traceback)
 
@@ -577,7 +589,9 @@ class ContinuousSpectrumDebugger(DiscreteSpectrumDebugger):
         that observed the given event.
         """
         all_runs = self.collectors[category]
-        collectors_with_event = set(collector for collector in all_runs if event in collector.events())
+        collectors_with_event = set(
+            collector for collector in all_runs if event in collector.events()
+        )
         return collectors_with_event
 
     def collectors_without_event(self, event: Any, category: str) -> Set[Collector]:
@@ -586,7 +600,9 @@ class ContinuousSpectrumDebugger(DiscreteSpectrumDebugger):
         that did not observe the given event.
         """
         all_runs = self.collectors[category]
-        collectors_without_event = set(collector for collector in all_runs if event not in collector.events())
+        collectors_without_event = set(
+            collector for collector in all_runs if event not in collector.events()
+        )
         return collectors_without_event
 
     def event_fraction(self, event: Any, category: str) -> float:
@@ -755,7 +771,9 @@ class ClassifyingDebugger(DifferenceDebugger):
         classifier = classifier.fit(self.X(), self.Y())
         return classifier
 
-    def show_classifier(self, classifier: DecisionTreeClassifier) -> Any:
+    def show_classifier(
+        self, classifier: DecisionTreeClassifier, filepath="test_g"
+    ) -> Any:
         dot_data = export_graphviz(
             classifier,
             out_file=None,
@@ -769,8 +787,8 @@ class ClassifyingDebugger(DifferenceDebugger):
             proportion=True,
             special_characters=True,
         )
-
-        return graphviz.Source(dot_data)
+        graph = graphviz.Source(dot_data)
+        graph.render(filename=filepath, format="png")
 
 
 def code_with_coverage(function: Callable, coverage: Coverage) -> None:
@@ -792,7 +810,7 @@ def code_with_coverage(function: Callable, coverage: Coverage) -> None:
 
 if __name__ == "__main__":
     from pprint import pprint
-    from .test_func import remove_html_markup, middle
+    from .demo_func import remove_html_markup, middle
 
     with CoverageCollector() as c:
         remove_html_markup('"abc"')
@@ -902,3 +920,8 @@ if __name__ == "__main__":
     debugger.event_table(color=True, args=True)
     with open("test_colored.md", "w") as fp:
         fp.write(debugger._repr_markdown_())
+
+    print("test decision tree classifier")
+    debugger = test_debugger_html(ClassifyingDebugger())
+    classifier = debugger.classifier()
+    debugger.show_classifier(classifier, filepath="testg")
