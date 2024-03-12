@@ -1,129 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys, importlib
+from pathlib import Path
 
-# "Tracking Failure Origins" - a chapter of "The Debugging Book"
-# Web site: https://www.debuggingbook.org/html/Slicer.html
-# Last change: 2023-11-12 13:40:39+01:00
-#
-# Copyright (c) 2021-2023 CISPA Helmholtz Center for Information Security
-# Copyright (c) 2018-2020 Saarland University, authors, and contributors
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the
-# "Software"), to deal in the Software without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-r'''
-The Debugging Book - Tracking Failure Origins
-
-This file can be _executed_ as a script, running all experiments:
-
-    $ python Slicer.py
-
-or _imported_ as a package, providing classes, functions, and constants:
-
-    >>> from debuggingbook.Slicer import <identifier>
-    
-but before you do so, _read_ it and _interact_ with it at:
-
-    https://www.debuggingbook.org/html/Slicer.html
-
-This chapter provides a `Slicer` class to automatically determine and visualize dynamic flows and dependencies. When we say that a variable $x$ _depends_ on a variable $y$ (and that $y$ _flows_ into $x$), we distinguish two kinds of dependencies:
-
-* **Data dependency**: $x$ is assigned a value computed from $y$.
-* **Control dependency**: A statement involving $x$ is executed _only_ because a _condition_ involving $y$ was evaluated, influencing the execution path.
-
-Such dependencies are crucial for debugging, as they allow determininh the origins of individual values (and notably incorrect values).
-
-To determine dynamic dependencies in a function `func`, use
-
-with Slicer() as slicer:
-    
+def import_parents(level=1):
+    global __package__
+    file = Path(__file__).resolve()
+    parent, top = file.parent, file.parents[level]
+    sys.path.append(str(top))
+    # try:
+    #     sys.path.remove(str(parent))
+    # except ValueError:  # already removed
+    #     pass
+    __package__ = ".".join(parent.parts[len(top.parts) :])
+    importlib.import_module(__package__)  # won't be needed after that
 
 
-and then `slicer.graph()` or `slicer.code()` to examine dependencies.
-
-You can also explicitly specify the functions to be instrumented, as in 
-
-with Slicer(func, func_1, func_2) as slicer:
-    
-
-
-Here is an example. The `demo()` function computes some number from `x`:
-
->>> def demo(x: int) -> int:
->>>     z = x
->>>     while x >>         z *= 2
->>>     return z
-
-By using `with Slicer()`, we first instrument `demo()` and then execute it:
-
->>> with Slicer() as slicer:
->>>     demo(10)
-
-After execution is complete, you can output `slicer` to visualize the dependencies and flows as graph. Data dependencies are shown as black solid edges; control dependencies are shown as grey dashed edges. The arrows indicate influence: If $y$ depends on $x$ (and thus $x$ flows into $y$), then we have an arrow $x \rightarrow y$.
-We see how the parameter `x` flows into `z`, which is returned after some computation that is control dependent on a `` involving `z`.
-
->>> slicer
-An alternate representation is `slicer.code()`, annotating the instrumented source code with (backward) dependencies. Data dependencies are shown with `>> slicer.code()
-*    1 def demo(x: int) -> int:
-*    2     z = x  #  (3)
-*    5     return z  # >> slicer.dependencies().all_vars()
-{('', ( int>, 5)),
- ('', ( int>, 3)),
- ('x', ( int>, 1)),
- ('z', ( int>, 2)),
- ('z', ( int>, 4))}
-
-`code()` and `graph()` methods can also be applied on dependencies. The method `backward_slice(var)` returns a backward slice for the given variable (again given as a pair (_name_, _location_)). To retrieve where `z` in Line 2 came from, use:
-
->>> _, start_demo = inspect.getsourcelines(demo)
->>> start_demo
-1
->>> slicer.dependencies().backward_slice(('z', (demo, start_demo + 1))).graph()  # type: ignore
-Here are the classes defined in this chapter. A `Slicer` instruments a program, using a `DependencyTracker` at run time to collect `Dependencies`.
-
-For more details, source, and documentation, see
-"The Debugging Book - Tracking Failure Origins"
-at https://www.debuggingbook.org/html/Slicer.html
-'''
-
-
-# Allow to use 'from . import <module>' when run as script (cf. PEP 366)
-if __name__ == '__main__' and __package__ is None:
-    __package__ = 'debuggingbook'
-
-
-# Tracking Failure Origins
-# ========================
-
-if __name__ == '__main__':
-    print('# Tracking Failure Origins')
-
-
-
-if __name__ == '__main__':
-    from .bookutils import YouTubeVideo
-    YouTubeVideo("sjf3cOR0lcI")
-
-if __name__ == '__main__':
-    # We use the same fixed seed as the notebook to ensure consistency
-    import random
-    random.seed(2001)
+import_parents(level=1)
 
 from .bookutils import quiz, next_inputs, print_content
 
@@ -132,21 +25,6 @@ import warnings
 
 from typing import Set, List, Tuple, Any, Callable, Dict, Optional
 from typing import Union, Type, Generator, cast
-
-## Synopsis
-## --------
-
-if __name__ == '__main__':
-    print('\n## Synopsis')
-
-
-
-## Dependencies
-## ------------
-
-if __name__ == '__main__':
-    print('\n## Dependencies')
-
 
 
 def middle(x, y, z):  # type: ignore

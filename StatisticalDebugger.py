@@ -11,6 +11,7 @@ import math
 import random
 from sklearn.tree import DecisionTreeClassifier, export_text, export_graphviz
 import graphviz
+from pprint import pprint
 
 # from IPython.display import Markdown
 from rich.markdown import Markdown
@@ -37,6 +38,7 @@ from .Tracer import Tracer
 from .StackInspector import StackInspector
 from .bookutils import getsourcelines  # like inspect.getsourcelines(), but in color
 from .ExpectError import ExpectError
+from .demo_func import remove_html_markup, middle
 
 Coverage = Set[Tuple[Callable, int]]
 
@@ -56,11 +58,7 @@ class Collector(Tracer):
         Saves the first function and calls collect().
         """
         for item in self.items_to_ignore:
-            if (
-                isinstance(item, type)
-                and "self" in frame.f_locals
-                and isinstance(frame.f_locals["self"], item)
-            ):
+            if isinstance(item, type) and "self" in frame.f_locals and isinstance(frame.f_locals["self"], item):
                 # Ignore this class
                 return
             if item.__name__ == frame.f_code.co_name:
@@ -71,9 +69,7 @@ class Collector(Tracer):
             # Save function
             self._function = self.create_function(frame)
             self._args = frame.f_locals.copy()
-            self._argstring = ", ".join(
-                [f"{var}={repr(self._args[var])}" for var in self._args]
-            )
+            self._argstring = ", ".join([f"{var}={repr(self._args[var])}" for var in self._args])
 
         self.collect(frame, event, arg)
 
@@ -139,9 +135,7 @@ class Collector(Tracer):
         """
         self.items_to_ignore += items_to_ignore
 
-    def __exit__(
-        self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType
-    ) -> Optional[bool]:
+    def __exit__(self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType) -> Optional[bool]:
         """Exit the `with` block."""
         ret = super().__exit__(exc_tp, exc_value, exc_traceback)
         if not self._function:
@@ -333,9 +327,7 @@ class StatisticalDebugger:
                 color_name = self.color(event)
                 if color_name:
                     event_name = (
-                        f'<samp style="background-color: {color_name}"{title}>'
-                        f"{html.escape(event_name)}"
-                        f"</samp>"
+                        f'<samp style="background-color: {color_name}"{title}>' f"{html.escape(event_name)}" f"</samp>"
                     )
 
             out += f"| {event_name}" + sep
@@ -408,9 +400,7 @@ class DifferenceDebugger(StatisticalDebugger):
         self.collector.__enter__()
         return self
 
-    def __exit__(
-        self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType
-    ) -> Optional[bool]:
+    def __exit__(self, exc_tp: Type, exc_value: BaseException, exc_traceback: TracebackType) -> Optional[bool]:
         """Exit the `with` block."""
         status = self.collector.__exit__(exc_tp, exc_value, exc_traceback)
 
@@ -589,9 +579,7 @@ class ContinuousSpectrumDebugger(DiscreteSpectrumDebugger):
         that observed the given event.
         """
         all_runs = self.collectors[category]
-        collectors_with_event = set(
-            collector for collector in all_runs if event in collector.events()
-        )
+        collectors_with_event = set(collector for collector in all_runs if event in collector.events())
         return collectors_with_event
 
     def collectors_without_event(self, event: Any, category: str) -> Set[Collector]:
@@ -600,9 +588,7 @@ class ContinuousSpectrumDebugger(DiscreteSpectrumDebugger):
         that did not observe the given event.
         """
         all_runs = self.collectors[category]
-        collectors_without_event = set(
-            collector for collector in all_runs if event not in collector.events()
-        )
+        collectors_without_event = set(collector for collector in all_runs if event not in collector.events())
         return collectors_without_event
 
     def event_fraction(self, event: Any, category: str) -> float:
@@ -771,9 +757,7 @@ class ClassifyingDebugger(DifferenceDebugger):
         classifier = classifier.fit(self.X(), self.Y())
         return classifier
 
-    def show_classifier(
-        self, classifier: DecisionTreeClassifier, filepath="test_g"
-    ) -> Any:
+    def show_classifier(self, classifier: DecisionTreeClassifier, filepath="test_g") -> Any:
         dot_data = export_graphviz(
             classifier,
             out_file=None,
@@ -808,9 +792,43 @@ def code_with_coverage(function: Callable, coverage: Coverage) -> None:
         line_number += 1
 
 
+def middle_testcase() -> Tuple[int, int, int]:
+    x = random.randrange(10)
+    y = random.randrange(10)
+    z = random.randrange(10)
+    return x, y, z
+
+
+def middle_test(x: int, y: int, z: int) -> None:
+    m = middle(x, y, z)
+    assert m == sorted([x, y, z])[1]
+
+
+def middle_passing_testcase() -> Tuple[int, int, int]:
+    while True:
+        try:
+            x, y, z = middle_testcase()
+            middle_test(x, y, z)
+            return x, y, z
+        except AssertionError:
+            pass
+
+
+def middle_failing_testcase() -> Tuple[int, int, int]:
+    while True:
+        try:
+            x, y, z = middle_testcase()
+            middle_test(x, y, z)
+        except AssertionError:
+            return x, y, z
+
+
+MIDDLE_TESTS = 100
+MIDDLE_PASSING_TESTCASES = [middle_passing_testcase() for i in range(MIDDLE_TESTS)]
+MIDDLE_FAILING_TESTCASES = [middle_failing_testcase() for i in range(MIDDLE_TESTS)]
+
 if __name__ == "__main__":
-    from pprint import pprint
-    from .demo_func import remove_html_markup, middle
+    
 
     with CoverageCollector() as c:
         remove_html_markup('"abc"')
@@ -876,38 +894,8 @@ if __name__ == "__main__":
     pprint(tarantula_middle.rank())
     print(tarantula_middle.suspiciousness(tarantula_middle.rank()[0]))
 
-    def middle_testcase() -> Tuple[int, int, int]:
-        x = random.randrange(10)
-        y = random.randrange(10)
-        z = random.randrange(10)
-        return x, y, z
-
-    def middle_test(x: int, y: int, z: int) -> None:
-        m = middle(x, y, z)
-        assert m == sorted([x, y, z])[1]
-
-    def middle_passing_testcase() -> Tuple[int, int, int]:
-        while True:
-            try:
-                x, y, z = middle_testcase()
-                middle_test(x, y, z)
-                return x, y, z
-            except AssertionError:
-                pass
-
-    def middle_failing_testcase() -> Tuple[int, int, int]:
-        while True:
-            try:
-                x, y, z = middle_testcase()
-                middle_test(x, y, z)
-            except AssertionError:
-                return x, y, z
-
     ochiai_middle = OchiaiDebugger()
 
-    MIDDLE_TESTS = 100
-    MIDDLE_PASSING_TESTCASES = [middle_passing_testcase() for i in range(MIDDLE_TESTS)]
-    MIDDLE_FAILING_TESTCASES = [middle_failing_testcase() for i in range(MIDDLE_TESTS)]
     for x, y, z in MIDDLE_PASSING_TESTCASES:
         with ochiai_middle.collect_pass():
             middle(x, y, z)
