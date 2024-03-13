@@ -29,6 +29,15 @@ from .StackInspector import StackInspector
 class Tracer(StackInspector):
     """A class for tracing a piece of code. Use as `with Tracer(): block()`"""
 
+    def __init__(self, file: TextIO = sys.stdout) -> None:
+        """
+        Create a new tracer.
+        If `file` is given, output to `file` instead of stdout.
+        """
+        self.last_vars: Dict[str, Any] = {}
+        self.original_trace_function: Optional[Callable] = None
+        self.file = file
+
     def _traceit(self, frame: FrameType, event: str, arg: Any) -> Optional[Callable]:
         """Internal tracing function."""
         if self.our_frame(frame):
@@ -67,16 +76,6 @@ class Tracer(StackInspector):
             return False  # internal error
         else:
             return None  # all ok
-
-    def __init__(self, file: TextIO = sys.stdout) -> None:
-        """
-        Create a new tracer.
-        If `file` is given, output to `file` instead of stdout.
-        """
-
-        self.last_vars: Dict[str, Any] = {}
-        self.original_trace_function: Optional[Callable] = None
-        self.file = file
 
     def changed_vars(self, new_vars: Dict[str, Any]) -> Dict[str, Any]:
         """Track changed variables, based on `new_vars` observed."""
@@ -179,7 +178,8 @@ class EventTracer(ConditionalTracer):
         return self.eval_in_context(self.condition, frame) or self.events_changed(self.events, frame)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     from .demo_func import remove_html_markup
+
     with Tracer():
         remove_html_markup("abc")

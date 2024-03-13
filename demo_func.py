@@ -39,3 +39,26 @@ def square_root(x):  # type: ignore
         guess = (approx + x / approx) / 2
 
     return approx
+
+from typing import Union, Type, Generator, cast
+from typing import Set, List, Tuple, Any, Callable, Dict, Optional
+def call_test() -> int:
+    c = 47
+
+    def sq(n: int) -> int:
+        return n * n
+
+    def gen(e: int) -> Generator[int, None, None]:
+        yield e * c
+
+    def just_x(x: Any, y: Any) -> Any:
+        return x
+
+    a = 42
+    b = gen(a)
+    d = list(b)[0]
+
+    xs = [1, 2, 3, 4]
+    ys = [sq(elem) for elem in xs if elem > 2]
+
+    return just_x(just_x(d, y=b), ys[0])

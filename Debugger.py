@@ -2,12 +2,11 @@
 # -*- coding: utf-8 -*-
 
 
-import sys
-import sys, importlib
-from pathlib import Path
 from types import FrameType
 from typing import Any, Optional, Callable, Dict, List, Tuple, Set, TextIO
 import inspect
+import sys, importlib
+from pathlib import Path
 
 
 def import_parents(level=1):
@@ -26,6 +25,7 @@ def import_parents(level=1):
 import_parents(level=1)
 from .Tracer import Tracer
 from .bookutils import getsourcelines  # like inspect.getsourcelines(), but in color
+from .bookutils import input, next_inputs
 
 
 class Debugger(Tracer):
